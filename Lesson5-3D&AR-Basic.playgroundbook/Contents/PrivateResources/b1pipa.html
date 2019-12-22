@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>南管琵琶3D模型</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../load4.css">
+    <script src="../three.js"></script>
+    <script src="../Detector.js"></script>
+    <script src="../OrbitControls.js"></script>
+    <script src="../OBJLoader.js"></script>
+    <script src="../MTLLoader.js"></script>
+    <style>
+        body {
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+            background: #404040;
+        }
+        .left,
+        .right {
+            position: absolute;
+            color: #fff;
+            font-family: Geneva, sans-serif;
+        }
+        .left {
+            bottom: 1em;
+            left: 1em;
+            text-align: left;
+        }
+        .right {
+            top: 0;
+            right: 10px;
+            height: 64px;
+            text-align: right;
+            margin-top: 10px;
+            text-decoration: none;
+        }
+        .right span {
+            color: white;
+            font-size: 30px;
+            border: 3px solid #eee;
+            padding: 1px 3px;
+            margin: 2px;
+            letter-spacing: 2px;
+        }
+        a {
+            color: #f58231;
+        }
+        .right, .right img {
+            height: 80px;
+        }
+    </style>
+</head>
+<body>
+    <a class="right" href="" target="_top">
+        <img src="../reset.png">
+    </a>
+    <script>
+        if (!Detector.webgl) {
+            Detector.addGetWebGLMessage();
+        }
+        var container;
+        var camera, controls, scene, renderer;
+        var lighting, ambient, keyLight, fillLight, backLight;
+        var windowHalfX = window.innerWidth / 2;
+        var windowHalfY = window.innerHeight / 2;
+
+        init();
+        animate();
+
+        function init() {
+            var progress = document.createElement('p');
+            container = document.createElement('div');
+            document.body.appendChild(container);
+            container.appendChild(progress);
+            /* Camera */
+            //四个参数分别对应：视角、近处的裁面的距离、远处的裁面的距离、实际窗口的纵横比
+            camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 0.001, 1000);
+            camera.position.z = 3;
+            /* Scene */
+            scene = new THREE.Scene();
+            lighting = false;
+
+            ambient = new THREE.AmbientLight(0xffffff, 1.0);
+            scene.add(ambient);
+
+            keyLight = new THREE.DirectionalLight(new THREE.Color('hsl(30, 100%, 75%)'), 0.5);
+            keyLight.position.set(-100, 0, 100);
+
+            fillLight = new THREE.DirectionalLight(new THREE.Color('hsl(240, 100%, 75%)'), 0.75);
+            fillLight.position.set(100, 0, 100);
+
+            backLight = new THREE.DirectionalLight(0xffffff, 1.0);
+            backLight.position.set(100, 0, -100).normalize();
+
+            scene.add(keyLight);
+
+            /* Model */
+            var mtlLoader = new THREE.MTLLoader();
+            mtlLoader.load('nypp.mtl', function (materials) {
+                // materials.preload();
+                materials.materials.nanyinpipaSG = new THREE.MeshPhongMaterial( { 
+                    map: THREE.ImageUtils.loadTexture( "nypp.jpg" ),
+                    side: THREE.DoubleSide
+                });
+                materials.materials.nanyinpipaSG.map.magFilter = THREE.NearestFilter;
+                materials.materials.nanyinpipaSG.map.minFilter = THREE.LinearFilter;
+
+                var objLoader = new THREE.OBJLoader();
+                objLoader.setMaterials(materials);
+                objLoader.load('nypp.obj', function (object) {
+                    scene.add(object);
+                    container.removeChild(progress);
+                });
+            });
+            /* Renderer */
+            renderer = new THREE.WebGLRenderer();
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(new THREE.Color("#404040"));
+            container.appendChild(renderer.domElement);
+            /* Controls */
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.25;
+            controls.enableZoom = true;
+            /* Events */
+            window.addEventListener('resize', onWindowResize, false);
+            window.addEventListener('keydown', onKeyboardEvent, false);
+        }
+        function onWindowResize() {
+            windowHalfX = window.innerWidth / 2;
+            windowHalfY = window.innerHeight / 2;
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        function onKeyboardEvent(e) {
+            if (e.code === 'KeyL') {
+                lighting = !lighting;
+                if (lighting) {
+                    ambient.intensity = 0.25;
+                    scene.add(keyLight);
+                    scene.add(fillLight);
+                    scene.add(backLight);
+                } else {
+                    ambient.intensity = 1.0;
+                    scene.remove(keyLight);
+                    scene.remove(fillLight);
+                    scene.remove(backLight);
+                }
+            }
+        }
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            render();
+        }
+        function render() {
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
